@@ -13,6 +13,7 @@ import os
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from joblib import dump, load
 from sklearn.neural_network import MLPRegressor, MLPClassifier
+import pickle as pk
 
 
 def WhittakerSmooth(x, w, lambda_, differences=1):
@@ -105,7 +106,7 @@ def update_dependent_variable(X, data_training):
     return y_Cr, y_Mn, y_Mo, y_Ni
 
 
-def tune_xgboost_model(X_train, y_train):
+def tune_xgb_model(X_train, y_train):
     xgb = XGBRegressor(random_state=123)
 
     parameters = {'nthread': [4],  # when use hyperthread, xgboost may become slower
@@ -134,10 +135,11 @@ def tune_xgboost_model(X_train, y_train):
 def tune_mlp_model(X_train, y_train):
     mlp = MLPRegressor(random_state=123)
 
-    parameters = {'activation': ['relu', 'tanh'],
-                  'hidden_layer_sizes': [(30, 20, 10,), (30, 25, 15,), (35, 30,)],
-                  'solver': ['adam', 'sgd', 'lbfgs'],
-                  'learning_rate': ['constant', 'adaptive', 'invscaling']}
+    parameters = {'activation': ['relu'],
+                  'hidden_layer_sizes': [(15,15,)],
+                  'solver': ['adam'],
+                  'learning_rate': ['constant', 'adaptive', 'invscaling'],
+                   'alpha': [1, 3, 5]}
 
     mlp_grid = GridSearchCV(mlp,
                             param_grid=parameters,
@@ -172,7 +174,7 @@ def preprocessed_data_pca(X, data_training, element='Mn'):
 
 
 def plot(x, y, element, r2, mae):
-    reg_plot = sns.regplot(x=x, y=y, ci=95);
+    reg_plot = sns.regplot(x=x, y=y, ci=95)
     reg_plot.set_xlabel('True', fontsize=20)
     reg_plot.set_ylabel('Prediction', fontsize=20)
     reg_plot.set_title(element + r' $R^{2}$: ' + str(r2) + ' MAE: ' + str(mae), fontsize=20)
@@ -189,14 +191,9 @@ def report(y_test, y_pred, element, report_df):
     return r2, mae
 
 
-def test():
-    pass
-
-
-if __name__ == "__main__":
-
+def train():
     report_df_pca = pd.DataFrame()
-    data_training = read_data(os.path.join('data','train_dataset.csv'))
+    data_training = read_data(os.path.join('data', 'train_dataset.csv'))
     X_training, y = divide_data(data_training)
 
     for element in ['Cr', 'Mn', 'Mo', 'Ni']:
@@ -204,8 +201,9 @@ if __name__ == "__main__":
 
         projected_train, y_train, pca, X_test, y_test = preprocessed_data_pca(X=X_training, data_training=data_training,
                                                                               element=element)
-        xgb_tuned_model = tune_xgboost_model(projected_train, y_train)
-        dump(xgb_tuned_model, os.path.join('saved-models', element, "xgboost_"+element+".joblib"))
+        pk.dump(pca, open(os.path.join("saved-pca","pca.pkl"), "wb"))
+        xgb_tuned_model = tune_xgb_model(projected_train, y_train)
+        dump(xgb_tuned_model, os.path.join('saved-models', element, "xgboost_" + element + ".joblib"))
 
         projected_test = pca.transform(X_test)
         y_pred = xgb_tuned_model.predict(projected_test)
@@ -214,3 +212,35 @@ if __name__ == "__main__":
         x = np.array(y_test)
         y = np.array(y_pred)
         plot(x, y, element, r2, mae)
+
+
+def test(pca,element):
+    test_df = pd.read_csv(os.path.join('data','test_dataset.csv'))
+    targets = test_df['target_name'].unique()
+
+    predictions = []
+    predictions_df = pd.DataFrame()
+    for target in targets:
+        print(target)
+        target_df = test_df.loc[test_df['target_name'] == target].drop(['target_name'],axis=1)
+        target_df_limited = limit_wavelength(target_df)
+
+        for index, row in target_df_limited.iterrows():
+            xgb_model = load(os.path.join('saved-models',element,'xgboost_'+element+'.joblib'))
+            predictions.append(xgb_model.predict(pca.transform(row.values.reshape(1, -1))))
+
+        predictions_df[target] = [np.average(predictions), np.std(predictions)]
+    predictions_df.to_csv(os.path.join('test',element,'test_'+element+'.csv'))
+
+
+def test_all(pca):
+    for element in ['Cr', 'Mn', 'Mo', 'Ni']:
+        test(pca,element)
+
+
+if __name__ == "__main__":
+    train()
+    pca = pk.load(open(os.path.join("saved-pca","pca.pkl"),'rb'))
+    test_all(pca)
+#test(pca, element)
+
