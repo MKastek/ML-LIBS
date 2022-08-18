@@ -155,15 +155,15 @@ def tune_mlp_model(X_train, y_train):
     return mlp_grid.best_estimator_
 
 
-def preprocessed_data_pca(X, data_training, element='Mn'):
-    #X_filtered = filter_noise(X=X, treshold=0.05)
+def preprocessed_data_pca(X, data_training, element='Mn',filter=False):
+    if filter:
+        X = filter_noise(X=X, treshold=0.05)
     X_avg_limited = limit_wavelength(X, w_min=225, w_max=940)
-    X_baseline_corrected = correct_baseline(X_avg_limited)
-    y_Cr, y_Mn, y_Mo, y_Ni = update_dependent_variable(X_baseline_corrected, data_training)
+    y_Cr, y_Mn, y_Mo, y_Ni = update_dependent_variable(X_avg_limited, data_training)
     y = {'Cr': y_Cr, 'Mn': y_Mn, 'Mo': y_Mo, 'Ni': y_Ni}
 
     pca = PCA(n_components=15)
-    X_normalized = Normalizer(norm='l2').fit_transform(X_baseline_corrected)
+    X_normalized = Normalizer(norm='l2').fit_transform(X_avg_limited)
     X_train, X_test, y_train, y_test = train_test_split(X_normalized, y[element], test_size=0.33, random_state=42)
 
     pca.fit(X_train)
@@ -224,12 +224,13 @@ def test(pca,element):
         print(target)
         target_df = test_df.loc[test_df['target_name'] == target].drop(['target_name'],axis=1)
         target_df_limited = limit_wavelength(target_df)
-
-        for index, row in target_df_limited.iterrows():
+        target_normalized = Normalizer(norm='l2').fit_transform(target_df_limited)
+        target_normalized_df = pd.DataFrame(target_normalized)
+        for index, row in target_normalized_df.iterrows():
             xgb_model = load(os.path.join('saved-models',element,'xgboost_'+element+'.joblib'))
             predictions.append(xgb_model.predict(pca.transform(row.values.reshape(1, -1))))
 
-        predictions_df[target] = [np.average(predictions), np.std(predictions)]
+        predictions_df[target] = [np.average(predictions), 1.96*np.std(predictions)]
     predictions_df.to_csv(os.path.join('test',element,'test_'+element+'.csv'))
 
 
@@ -239,7 +240,7 @@ def test_all(pca):
 
 
 if __name__ == "__main__":
-    #train()
+    train()
     pca = pk.load(open(os.path.join("saved-pca","pca.pkl"),'rb'))
     test_all(pca)
 #test(pca, element)
