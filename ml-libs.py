@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
+from joblib import dump, load
+from sklearn.neural_network import MLPRegressor, MLPClassifier
+
 
 def WhittakerSmooth(x, w, lambda_, differences=1):
     '''
@@ -102,8 +105,8 @@ def update_dependent_variable(X, data_training):
     return y_Cr, y_Mn, y_Mo, y_Ni
 
 
-def tune_model(X_train, y_train):
-    xgb = XGBRegressor()
+def tune_xgboost_model(X_train, y_train):
+    xgb = XGBRegressor(random_state=123)
 
     parameters = {'nthread': [4],  # when use hyperthread, xgboost may become slower
                   'objective': ['reg:squarederror'],
@@ -126,6 +129,28 @@ def tune_model(X_train, y_train):
     print('Best parameters:', xgb_grid.best_params_)
 
     return xgb_grid.best_estimator_
+
+
+def tune_mlp_model(X_train, y_train):
+    mlp = MLPRegressor(random_state=123)
+
+    parameters = {'activation': ['relu', 'tanh'],
+                  'hidden_layer_sizes': [(30, 20, 10,), (30, 25, 15,), (35, 30,)],
+                  'solver': ['adam', 'sgd', 'lbfgs'],
+                  'learning_rate': ['constant', 'adaptive', 'invscaling']}
+
+    mlp_grid = GridSearchCV(mlp,
+                            param_grid=parameters,
+                            cv=5,
+                            n_jobs=5,
+                            verbose=True)
+
+    mlp_grid.fit(X_train, y_train)
+
+    print('Best score:', mlp_grid.best_score_)
+    print('Best parameters:', mlp_grid.best_params_)
+
+    return mlp_grid.best_estimator_
 
 
 def preprocessed_data_pca(X, data_training, element='Mn'):
@@ -153,6 +178,7 @@ def plot(x, y, element, r2, mae):
     reg_plot.set_title(element + r' $R^{2}$: ' + str(r2) + ' MAE: ' + str(mae), fontsize=20)
     reg_plot.grid()
     plt.savefig(os.path.join('report',element,element+'.png'))
+    plt.clf()
 
 
 def report(y_test, y_pred, element, report_df):
@@ -161,6 +187,10 @@ def report(y_test, y_pred, element, report_df):
     report_df[element] = [r2, mae]
     report_df.to_csv(os.path.join('report','xgboost_report.csv'))
     return r2, mae
+
+
+def test():
+    pass
 
 
 if __name__ == "__main__":
@@ -174,7 +204,8 @@ if __name__ == "__main__":
 
         projected_train, y_train, pca, X_test, y_test = preprocessed_data_pca(X=X_training, data_training=data_training,
                                                                               element=element)
-        xgb_tuned_model = tune_model(projected_train, y_train)
+        xgb_tuned_model = tune_xgboost_model(projected_train, y_train)
+        dump(xgb_tuned_model, os.path.join('saved-models', element, "xgboost_"+element+".joblib"))
 
         projected_test = pca.transform(X_test)
         y_pred = xgb_tuned_model.predict(projected_test)
