@@ -156,8 +156,8 @@ def tune_mlp_model(X_train, y_train):
 
 
 def preprocessed_data_pca(X, data_training, element='Mn'):
-    X_filtered = filter_noise(X=X, treshold=0.05)
-    X_avg_limited = limit_wavelength(X_filtered, w_min=225, w_max=940)
+    #X_filtered = filter_noise(X=X, treshold=0.05)
+    X_avg_limited = limit_wavelength(X, w_min=225, w_max=940)
     X_baseline_corrected = correct_baseline(X_avg_limited)
     y_Cr, y_Mn, y_Mo, y_Ni = update_dependent_variable(X_baseline_corrected, data_training)
     y = {'Cr': y_Cr, 'Mn': y_Mn, 'Mo': y_Mo, 'Ni': y_Ni}
@@ -218,9 +218,9 @@ def test(pca,element):
     test_df = pd.read_csv(os.path.join('data','test_dataset.csv'))
     targets = test_df['target_name'].unique()
 
-    predictions = []
     predictions_df = pd.DataFrame()
     for target in targets:
+        predictions = []
         print(target)
         target_df = test_df.loc[test_df['target_name'] == target].drop(['target_name'],axis=1)
         target_df_limited = limit_wavelength(target_df)
@@ -239,7 +239,7 @@ def test_all(pca):
 
 
 if __name__ == "__main__":
-    train()
+    #train()
     pca = pk.load(open(os.path.join("saved-pca","pca.pkl"),'rb'))
     test_all(pca)
 #test(pca, element)
