@@ -58,8 +58,8 @@ def tune_xgb_model(X_train, y_train):
                   'max_depth': [5, 6, 7],
                   'min_child_weight': [4],
                   'subsample': [0.7],
-                  'colsample_bytree': [0.7],
-                  'n_estimators': [500]}
+                  'colsample_bytree': [0.7, 0.8, 1.0],
+                  'n_estimators': [500, 800, 1000]}
 
     xgb_grid = GridSearchCV(xgb,
                             parameters,
@@ -107,6 +107,8 @@ def report(y_test, y_pred, element, report_df):
     r2 = np.round(r2_score(y_test, y_pred), 3)
     mae = np.round(mean_absolute_error(y_test, y_pred), 3)
     report_df[element] = [r2, mae]
+    report_df['score'] = ['R2', 'MAE']
+    report_df = report_df.set_index('score')
     report_df.to_csv(os.path.join('report','xgboost_report.csv'))
     return r2, mae
 
@@ -150,7 +152,9 @@ def test(pca,element):
             xgb_model = load(os.path.join('saved-models',element,'xgboost_'+element+'.joblib'))
             predictions.append(xgb_model.predict(pca.transform(row.values.reshape(1, -1))))
 
-        predictions_df[target] = [np.average(predictions), 1.96*np.std(predictions)]
+        predictions_df[target] = [np.average(predictions), np.std(predictions)]
+    predictions_df['score'] = ['pred', 'unc']
+    predictions_df = predictions_df.set_index('score')
     predictions_df.to_csv(os.path.join('test',element,'test_'+element+'.csv'))
 
 
@@ -163,5 +167,5 @@ def test_all():
 if __name__ == "__main__":
     train()
     test_all()
-#test(pca, element)
+
 
