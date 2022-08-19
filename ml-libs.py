@@ -58,12 +58,12 @@ def tune_xgb_model(X_train, y_train):
                   'max_depth': [5, 6, 7],
                   'min_child_weight': [4],
                   'subsample': [0.7],
-                  'colsample_bytree': [0.7, 0.8, 1.0],
-                  'n_estimators': [500, 800, 1000]}
+                  'colsample_bytree': [0.7],
+                  'n_estimators': [500]}
 
     xgb_grid = GridSearchCV(xgb,
                             parameters,
-                            cv=10,
+                            cv=5,
                             n_jobs=5,
                             verbose=True)
 
