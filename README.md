@@ -3,7 +3,7 @@
 My approach to solve [LIBS 2022 quantification contest](https://libs2022.com/). Task was to predict the Cr, Mn, Mo, and Ni content of 15 metal alloys. 
 Every sample in dataset contains LIBS spectra:
 
-
+[!Alt text](https://github.com/MKastek/ML-LIBS/blob/f6959529fe8640bdc8797b75db22888687925a59/images/libs_sample_spectrum.PNG?raw=true)
 Two approches of dimension reduction were tested:
 - selecting lines,
 - PCA analysis.
