@@ -6,7 +6,7 @@ Every sample in dataset contains LIBS spectra:
 ![](https://github.com/MKastek/ML-LIBS/blob/f6959529fe8640bdc8797b75db22888687925a59/images/libs_sample_spectrum.PNG?raw=true)  
 
 Two approches of dimension reduction were tested:
-- selecting lines,
+- selecting lines with best correlation with composition of given element,
 - PCA analysis.
 
 Final model was built with XGBoost Regressor.
