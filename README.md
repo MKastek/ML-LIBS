@@ -12,4 +12,5 @@ Two approches of dimension reduction were tested:
 Final model was built with XGBoost Regressor.
 
 ## Final result of the contest
-![alt text](https://github.com/MKastek/ML-LIBS/blob/f33801ec87d9302a152d33cdfb89cafd17d85a28/images/final_result_rmse.jpeg?raw_data=True)
+![alt text](https://github.com/MKastek/ML-LIBS/blob/f33801ec87d9302a152d33cdfb89cafd17d85a28/images/final_result_rmse.jpeg?raw_data=True)  
+[Certification](https://github.com/MKastek/ML-LIBS/blob/master/download/certificationLetter_MarcinKastek_signed.pdf?raw_data=True)
